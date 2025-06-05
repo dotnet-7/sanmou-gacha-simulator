@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>三谋抽卡模拟器</title>
+  <style>
+    body {
+      background: #e9f2ff;
+      font-family: 'Segoe UI', '微软雅黑', Arial;
+      padding: 0;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+    }
+    .top-info {
+      margin-top: 32px;
+      display: flex;
+      gap: 36px;
+    }
+    .top-info span {
+      font-size: 18px;
+      letter-spacing: 2px;
+    }
+    .pity { color: #e28839; }
+    .balance { color: #447ccf; }
+    .draw-btn {
+      margin: 36px 0 20px 0;
+      font-size: 20px;
+      padding: 10px 36px;
+      background: #59b9e1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.23s;
+      font-weight: bold;
+    }
+    .draw-btn:active {
+      background: #398fc1;
+    }
+    .card-result-area {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      justify-content: center;
+      min-height:180px;
+    }
+    .card-container {
+      width: 110px;
+      height: 150px;
+      perspective: 1000px;
+    }
+    .card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transition: transform 0.8s cubic-bezier(0.4,0.2,0.2,1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+    .card-face {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0; left: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backface-visibility: hidden;
+      border-radius: 13px;
+      font-size: 18px;
+      border: 2.5px solid #eee;
+      box-shadow: 0 9px 32px rgba(0,0,0,0.14);
+      font-weight: bold;
+      letter-spacing: 1px;
+      transition: background .23s;
+    }
+    .card-front {
+      background: linear-gradient(160deg, #c7e7ff 60%, #a8cde8 100%);
+      color: #a7a7a7;
+      letter-spacing:3px;
+      font-size: 25px;
+      user-select: none;
+      justify-content:center;
+    }
+    .card-back.gold {
+      background: linear-gradient(145deg,#ffe289 60%,#fdeafe 100%);
+      color: #be8e00;
+      border: 2.5px solid #cfa434;
+      text-shadow: 0 1.5px 0 #fff7ad;
+    }
+    .card-back.blue {
+      background: linear-gradient(145deg, #8ac2fe 60%, #efedff 100%);
+      color: #385eab;
+      border: 2.5px solid #447ccf;
+      text-shadow: 0 1.5px 0 #e7ecfd;
+    }
+    .card.flipped {
+      transform: rotateY(180deg);
+      pointer-events: none;
+      /* 只允许翻一次 */
+    }
+    .card-back {
+      transform: rotateY(180deg);
+      padding:10px;
+      align-items: flex-start;
+    }
+    .history-area {
+      width: 400px;
+      max-width: 95vw;
+      min-height: 70px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 16px 0 #bfc7d3;
+      font-size: 14px;
+      color: #666;
+    }
+    .history-area h3 { margin:0 0 6px 0; font-size: 15px;}
+    .hist-item {
+      margin: 2px 0;
+      color: #96710e;
+      font-weight: bold;
+      font-size:15px;
+    }
+    @media (max-width: 600px) {
+      .card-result-area { gap: 3px; }
+      .card-container { width: 75px; height: 100px;}
+      .history-area { width:98vw;}
+    }
+  </style>
+</head>
+<body>
+  <div class="top-info">
+    <span class="balance">余额:<span id="money">10000</span> b</span>
+    <span class="pity">保底:<span id="pity">0</span>/19</span>
+    <span>金卡数:<span id="gold-count">0</span></span>
+  </div>
+  <button class="draw-btn" id="drawBtn">抽5次</button>
+  <div class="card-result-area" id="resultArea">
+    <!-- 展示5张动画翻牌卡 -->
+  </div>
+  <div class="history-area">
+    <h3>金卡抽取历史:</h3>
+    <div id="historyList"></div>
+  </div>
+<script>
+    let heads = [], books = [];
+    let goldHeads = [], goldBooks = [], blueHeads = [], blueBooks = [];
+
+    function setupPools() {
+      goldHeads = heads.filter(x => x.color === 'gold');
+      goldBooks = books.filter(x => x.color === 'gold');
+      blueHeads = heads.filter(x => x.color === 'blue');
+      blueBooks = books.filter(x => x.color === 'blue');
+    }
+        // 读取CSV文件并解析为数组
+    function fetchCSV(file,type) {
+        return fetch(file)
+            .then(response => response.text())
+            .then(text => {
+                const lines = text.split('\n').map(line => line.trim());
+                const headers = lines[0].split(',');
+                const data = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    return headers.reduce((obj, header, i) => {
+                        obj[header] = header === 'type' ? type:values[i];
+                        return obj;
+                    }, {});
+                });
+                return data;
+            });
+    }
+
+    // 读取heads.csv
+    fetchCSV('heads.csv','head').then(h => {
+        heads = h;
+        if (books.length) setupPools(); // books先加载完也能配套
+    });
+    // 读取books.csv
+    fetchCSV('books.csv','book').then(b => {
+        books = b;
+        if (heads.length) setupPools();
+    });
+  // 你的数据，这里仅示例4张，正式只需按格式扩展
+  // const heads = [
+  //   {id: 1, name: "亚瑟", color: "gold", type: "head"},
+  //   {id: 2, name: "兰斯洛特", color: "blue", type: "head"},
+  //   {id: 3, name: "莫德雷德", color: "blue", type: "head"},
+  //   {id: 4, name: "梅林", color: "gold", type: "head"},
+  // ];
+  // const books = [
+  //   {id: 101, name: "魔法宝典", color: "gold", type: "book"},
+  //   {id: 102, name: "冒险手册", color: "blue", type: "book"},
+  //   {id: 103, name: "龙语手札", color: "gold", type: "book"},
+  //   {id: 104, name: "骑士守则", color: "blue", type: "book"},
+  // ];
+  const moneyPerDraw = 390; // 单次5连抽的消耗
+  let money = 10000;
+  let pity = 0; // 连续未出金色次数
+  let goldCount = 0;
+  // let goldHeads = heads?.filter(x=>x.color==='gold');
+  // let goldBooks = books?.filter(x=>x.color==='gold');
+  // let blueHeads = heads?.filter(x=>x.color==='blue');
+  // let blueBooks = books?.filter(x=>x.color==='blue');
+  let history = [];
+  // 抽一张卡的逻辑，返回新卡对象
+  function randomCard(pityFlag, atLeastOneGold) {
+    if (pityFlag && atLeastOneGold) {
+      // 保底触发，且这次一定出金
+      const goldType = Math.random() < 0.5 ? goldHeads : goldBooks;
+      return goldType[Math.floor(Math.random()*goldType.length)];
+    }
+    let r = Math.random();
+    if (r <= 0.04) { // 4% 金人头
+      return goldHeads[Math.floor(Math.random()*goldHeads.length)];
+    } else if (r <= 0.08) { // 4% 金书
+      return goldBooks[Math.floor(Math.random()*goldBooks.length)];
+    } else if (r <= 0.53) {
+      let blues = [...blueBooks];
+      return blues[Math.floor(Math.random()*blueBooks.length)];
+    } else {
+        let blues = [...blueHeads];
+        return blues[Math.floor(Math.random()*blues.length)];
+    }
+  }
+  // 触发抽5次
+  document.getElementById('drawBtn').onclick = function() {
+    if (money < moneyPerDraw) {
+      alert("余额不足，无法抽牌！");
+      return;
+    }
+    money -= moneyPerDraw;
+    let drawResults = [];
+    let gotGold = false;
+    let pityFlag = pity>=19;
+    for(let i=0; i<5; ++i) {
+      if (pityFlag && !gotGold) {
+        let c = randomCard(true, true);
+        drawResults.push(c);
+        gotGold = true;
+        pity=0; // 重置保底
+      } else {
+        let c = randomCard(false, false);
+        drawResults.push(c);
+        if(c.color==='gold'){
+          gotGold = true;
+          pity=0; // 出金重置保底
+        } else {
+          pity++;
+        }
+      }
+    }
+    updateAllInfo();
+    showResultCardsWithAnimate(drawResults);
+  };
+  // 页面信息&历史区刷新
+  function updateAllInfo() {
+    document.getElementById('money').textContent = money;
+    document.getElementById('pity').textContent = pity;
+    document.getElementById('gold-count').textContent = goldCount;
+  }
+  // 翻牌动画区
+  function showResultCardsWithAnimate(cardArr) {
+    // 清空结果展示区
+    let area = document.getElementById('resultArea');
+    area.innerHTML = '';
+    // 渲染5个背面卡
+    cardArr.forEach((card,idx) => {
+      let c = document.createElement('div');
+      c.className="card-container";
+      c.innerHTML = `
+        <div class="card" id="card_id${idx}">
+          <div class="card-face card-front">?</div>
+          <div class="card-face card-back ${card.color}">
+            <div>【${card.type=='head'?'武将':'战法'}】</div>
+            <div>${card.name}</div>
+          </div>
+        </div>
+      `;
+      area.appendChild(c);
+    });
+    // 动画: 逐张依次翻牌
+    let i = 0;
+    function flipNext(){
+      if(i>=5){
+        // 把5张卡的金色写入历史和计数
+        let historyDiv = document.getElementById('historyList');
+        let anyGold = false;
+        cardArr.forEach(card=>{
+          if(card.color==='gold'){
+            history.unshift(`<span class='hist-item'>【${card.type=='head'?'武将':'战法'}】${card.name}</span>`);
+            anyGold = true;
+            goldCount++;
+          }
+        })
+        // 最多历史显示10条
+        while(history.length>10) history.pop();
+        historyDiv.innerHTML = history.join("<br>");
+        updateAllInfo();
+        return;
+      }
+      document.getElementById('card_id'+i).classList.add('flipped');
+      setTimeout(flipNext, 400);
+      i++;
+    }
+    // 每张卡 0.4秒 依次翻开
+    setTimeout(flipNext, 500);
+  }
+  updateAllInfo(); // 刷新初始余额信息
+</script>
+</body>
+</html>
