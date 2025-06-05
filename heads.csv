@@ -46,10 +46,10 @@ id,name,color,type
 45,王异,gold
 46,张任,gold
 47,马谡,gold
-48,诸葛瑾,gold
+48,张角,gold
 49,徐庶,gold
-50,凌统,gold
-51,陈到,blue
+50,张梁,gold
+51,张宝,gold
 52,徐盛,gold
 53,韩当,blue
 54,丁奉,blue
@@ -58,7 +58,7 @@ id,name,color,type
 57,文聘,blue
 58,乐进,gold
 59,于禁,gold
-60,李典,blue
+60,典韦,gold
 61,满宠,blue
 62,郝昭,blue
 63,贾充,blue
@@ -68,7 +68,7 @@ id,name,color,type
 67,何晏,blue
 68,王朗,blue
 69,王平,blue
-70,李严,blue
+70,庞德,gold
 71,刘禅,blue
 72,廖化,blue
 73,费祎,blue
@@ -84,9 +84,9 @@ id,name,color,type
 83,韩浩,blue
 84,孔融,blue
 85,金旋,blue
-86,鲁芝,blue
+86,甘夫人,gold
 87,文丑,gold
-88,顾雍,blue
+88,孙坚,gold
 89,张苞,blue
 90,曹植,gold
 91,张松,blue
@@ -94,7 +94,7 @@ id,name,color,type
 93,孙策,gold
 94,甘宁,gold
 95,陆逊,gold
-96,黄权,blue
+96,张宁,gold
 97,董允,blue
 98,刘封,blue
 99,彭羕,blue
