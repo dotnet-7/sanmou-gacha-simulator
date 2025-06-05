@@ -293,12 +293,16 @@
         return blues[Math.floor(Math.random()*blues.length)];
     }
   }
+  let isFlipping = false
   // 触发抽5次
   document.getElementById('drawBtn').onclick = function() {
+    if (isFlipping) return; // 上一组翻牌动画未结束
+
     if (money < moneyPerDraw) {
       alert("余额不足，请先充值！");
       return;
     }
+    isFlipping = true;
     money -= moneyPerDraw;
     let drawResults = [];
     let gotGold = false;
@@ -323,6 +327,7 @@
     }
     updateAllInfo();
     showResultCardsWithAnimate(drawResults);
+    setTimeout(()=>{isFlipping=false;}, 3000); // 3秒后允许下次抽卡
   };
   // 页面信息&历史区刷新
 function updateAllInfo() {
@@ -335,6 +340,9 @@ function updateAllInfo() {
   // 更新总充值显示
     document.getElementById('totalCharge').textContent = totalCharge;
 }
+
+
+
   // 翻牌动画区
   function showResultCardsWithAnimate(cardArr) {
     // 清空结果展示区
@@ -355,6 +363,8 @@ function updateAllInfo() {
       `;
       area.appendChild(c);
     });
+
+
     // 动画: 逐张依次翻牌
     let i = 0;
     function flipNext(){
