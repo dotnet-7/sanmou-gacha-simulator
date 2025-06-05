@@ -133,14 +133,60 @@
       .card-container { width: 75px; height: 100px;}
       .history-area { width:98vw;}
     }
+
+    .recharge-area {
+      margin-top: 36px;
+      width: 400px;
+      max-width: 95vw;
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 16px 0 #bfc7d3;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .recharge-area h3 {
+      margin: 0 0 6px 0;
+      font-size: 15px;
+    }
+
+    .recharge-options {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 12px;
+    }
+
+    .recharge-btn {
+      padding: 10px 16px;
+      background: #59b9e1;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.23s;
+      font-weight: bold;
+    }
+
+    .recharge-btn:active {
+      background: #398fc1;
+    }
+
+    .recharge-reward {
+      text-align: center;
+      font-size: 16px;
+      color: #e28839;
+    }
   </style>
 </head>
 <body>
-  <div class="top-info">
-    <span class="balance">余额:<span id="money">10000</span> b</span>
-    <span class="pity">保底:<span id="pity">0</span>/19</span>
-    <span>金卡数:<span id="gold-count">0</span></span>
-  </div>
+    <div class="top-info">
+      <span class="balance">余额:<span id="money">10000</span> b</span>
+      <span class="pity">保底:<span id="pity">0</span>/19</span>
+      <span>金卡数:<span id="gold-count">0</span></span>
+      <span>总抽卡数:<span id="totalDraws">0</span></span>
+      <span>总充值:<span id="totalCharge">0</span></span>
+    </div>
   <button class="draw-btn" id="drawBtn">抽5次</button>
   <div class="card-result-area" id="resultArea">
     <!-- 展示5张动画翻牌卡 -->
@@ -149,9 +195,27 @@
     <h3>金卡抽取历史:</h3>
     <div id="historyList"></div>
   </div>
+
+  <!-- 充值窗口 -->
+<div class="recharge-area">
+  <h3>快速变强，超级特惠</h3>
+  <div class="recharge-options">
+    <button class="recharge-btn" data-amount="6">6元</button>
+    <button class="recharge-btn" data-amount="30">30元</button>
+    <button class="recharge-btn" data-amount="98">98元</button>
+    <button class="recharge-btn" data-amount="328">328元</button>
+    <button class="recharge-btn" data-amount="648">648元</button>
+  </div>
+<!--  <div class="recharge-reward">-->
+<!--    <span>奖励: <span id="recharge-reward-amount">0</span> b</span>-->
+<!--  </div>-->
+</div>
 <script>
     let heads = [], books = [];
     let goldHeads = [], goldBooks = [], blueHeads = [], blueBooks = [];
+    let rechargeCount = 0; // 充值次数
+    let totalDraws = 0; // 总抽卡次数
+    let totalCharge = 0;
 
     function setupPools() {
       goldHeads = heads.filter(x => x.color === 'gold');
@@ -232,13 +296,14 @@
   // 触发抽5次
   document.getElementById('drawBtn').onclick = function() {
     if (money < moneyPerDraw) {
-      alert("余额不足，无法抽牌！");
+      alert("余额不足，请先充值！");
       return;
     }
     money -= moneyPerDraw;
     let drawResults = [];
     let gotGold = false;
     let pityFlag = pity>=19;
+    totalDraws += 5;
     for(let i=0; i<5; ++i) {
       if (pityFlag && !gotGold) {
         let c = randomCard(true, true);
@@ -260,11 +325,16 @@
     showResultCardsWithAnimate(drawResults);
   };
   // 页面信息&历史区刷新
-  function updateAllInfo() {
-    document.getElementById('money').textContent = money;
-    document.getElementById('pity').textContent = pity;
-    document.getElementById('gold-count').textContent = goldCount;
-  }
+function updateAllInfo() {
+  document.getElementById('money').textContent = money;
+  document.getElementById('pity').textContent = pity;
+  document.getElementById('gold-count').textContent = goldCount;
+  // document.getElementById('recharge-reward-amount').textContent = rechargeCount * 10;
+  // 更新总抽卡次数显示
+  document.getElementById('totalDraws').textContent = totalDraws;
+  // 更新总充值显示
+    document.getElementById('totalCharge').textContent = totalCharge;
+}
   // 翻牌动画区
   function showResultCardsWithAnimate(cardArr) {
     // 清空结果展示区
@@ -312,7 +382,43 @@
     // 每张卡 0.4秒 依次翻开
     setTimeout(flipNext, 500);
   }
+
   updateAllInfo(); // 刷新初始余额信息
+
+
+
+// 获取充值奖励显示元素
+const rechargeRewardElement = document.getElementById('recharge-reward-amount');
+
+// 获取所有充值按钮
+const rechargeButtons = document.querySelectorAll('.recharge-btn');
+
+// 为每个充值按钮添加点击事件监听器
+rechargeButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const amount = parseInt(button.getAttribute('data-amount'));
+
+    // 弹出确认窗口
+    const userConfirmed = confirm(`您确定要充值 ${amount} 元吗？`);
+
+    // 如果用户确认，则继续处理充值逻辑
+    if (userConfirmed) {
+      // 增加充值次数
+      rechargeCount++;
+      // 计算奖励
+      const reward = amount * 10;
+      // 更新余额
+      money += reward;
+      // 更新总充值金额
+      totalCharge += amount;
+      // 更新页面信息
+      updateAllInfo();
+      // 提醒充值成功
+      alert(`充值成功！您获得了 ${reward} b 的玉。`);
+    }
+  });
+});
+
 </script>
 </body>
 </html>
